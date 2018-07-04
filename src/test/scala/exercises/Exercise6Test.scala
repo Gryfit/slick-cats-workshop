@@ -3,12 +3,15 @@ package exercises
 import cats.implicits._
 import instances.DbioInstances.dbioMonad
 import model.domain.Breed
+import model.infra.Breeds
 import slick.dbio.DBIO
 import util.WorkshopTest
+import slick.jdbc.H2Profile.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{Await, Future}
+import scala.util.Success
 
 class Exercise6Test extends WorkshopTest {
   import module._
@@ -30,7 +33,13 @@ class Exercise6Test extends WorkshopTest {
 
   val breedsNames = List("Abyssinian", "Devon Rex", "Maine Coon", "Norwegian Forest Cat", "Ocicat")
 
-  def findBreeds(names: List[String]): DBIO[List[Option[Breed]]] = ???
+  def featchBreed(x: String):DBIO[Option[Breed]] = {
+    val tmp = Breeds.query.filter(_.name === x)
+    tmp.result.headOption
+  }
+  def findBreeds(names: List[String]): DBIO[List[Option[Breed]]] = {
+    names.traverse(featchBreed(_))
+  }
 
   "findBreeds" should "find breeds with given name" in rollbackWithTestData {
     for {
@@ -49,7 +58,9 @@ class Exercise6Test extends WorkshopTest {
 
   val optionalBreedName = Some("Norwegian Forest Cat")
 
-  def findBreed(name: Option[String]): DBIO[Option[Breed]] = ???
+  def findBreed(name: Option[String]): DBIO[Option[Breed]] = {
+    name.flatTraverse(featchBreed(_))
+  }
 
   "findBreed" should "find breed for an optional name" in rollbackWithTestData {
     for {
@@ -65,8 +76,13 @@ class Exercise6Test extends WorkshopTest {
     * I'm sure you'll find it useful that traverse works for eithers as well.
     *
     */
-
-  def findBreed(name: Either[Int, String]): DBIO[Either[Int, Breed]] = ???
+  def featchBreedEither(x: String):DBIO[Breed]= {
+    val tmp = Breeds.query.filter(_.name === x)
+    tmp.result.head
+  }
+  def findBreed(name: Either[Int, String]): DBIO[Either[Int, Breed]] = {
+    name.traverse(featchBreedEither(_))
+  }
 
   "findBreed" should "find breed for name in right" in rollbackWithTestData {
     for {
@@ -83,7 +99,9 @@ class Exercise6Test extends WorkshopTest {
 
   val nameFromFuture = Future.successful("Ocicat")
 
-  def findBreed(name: Future[String]): DBIO[Option[Breed]] = ???
+  def findBreed(name: Future[String]): DBIO[Option[Breed]] = {
+    DBIO.from(name).flatMap(featchBreed(_))
+  }
 
   "findBreed" should "find breed for name from future" in rollbackWithTestData {
     for {

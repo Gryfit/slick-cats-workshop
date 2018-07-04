@@ -24,7 +24,9 @@ class Exercise8Test extends WorkshopTest {
     * hint: https://bartosz822.github.io/slick-cats-workshop-presentation/#/10/12
     */
 
-  def findCatByName(name: String): OptionT[DBIO, Cat] = ???
+  def findCatByName(name: String): OptionT[DBIO, Cat] = {
+    OptionT(catsRepository.findByName(name))
+  }
 
   "findCatByName" should "find cat if it's name is correct" in fixture { c =>
     import c._

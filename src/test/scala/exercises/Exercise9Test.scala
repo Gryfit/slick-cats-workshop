@@ -34,7 +34,9 @@ class Exercise9Test extends WorkshopTest {
     }
   }
 
-  def matchCat(cat: DBIO[Cat]): EitherT[DBIO, OldCat, YoungCat] = ???
+  def matchCat(cat: DBIO[Cat]): EitherT[DBIO, OldCat, YoungCat] = {
+    EitherT[DBIO, OldCat, YoungCat](cat.map(matchCat))
+  }
 
 
   "matching multiple cats" should "return left if one of cats is old" in fixture { c =>

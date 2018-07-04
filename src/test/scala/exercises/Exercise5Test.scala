@@ -27,7 +27,9 @@ class Exercise5Test extends WorkshopTest {
     threshold.map(value => CatFoods.query.filter(_.caloriesPerGram > value).result)
   }
 
-  def getBetterFood(catFood: CatFood): DBIO[Option[Seq[CatFood]]] = ???
+  def getBetterFood(catFood: CatFood): DBIO[Option[Seq[CatFood]]] = {
+    foodWithMoreCalories(Some(catFood.caloriesPerGram)).sequence
+  }
 
   "foodWithMoreCalories" should "find catfood with more calories per gram" in fixture { c =>
     import c._

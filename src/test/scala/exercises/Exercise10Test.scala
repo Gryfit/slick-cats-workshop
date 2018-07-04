@@ -6,7 +6,7 @@ import cats.implicits._
 import cats.mtl.implicits._
 import instances.DbioInstances._
 import model.domain.{Breed, CatFoodShop, PriceList}
-import model.infra.CatFoodPrices
+import model.infra.{Breeds, CatFoodPrices, CatFoodShops, Cats}
 import services.WeatherService.Forecast
 import services.{ShoppingScheduleService, WeatherService}
 import slick.dbio.DBIO
@@ -37,8 +37,45 @@ class Exercise10Test extends WorkshopTest {
 
   val location = "Cystersów 20A"
 
+  def getGoodWeatherDays(shop: CatFoodShop):DBIO[Seq[DayOfWeek]] = {
+    val days = weatherService.weekDays
+    val goodDays = days.traverse[DBIO,WeatherService.Forecast.Value](
+      day => DBIO.from(weatherService.getWeatherOnRoute(day, location, shop.address))
+    )
+    goodDays.map(
+      d=>
+        d.zip(days)
+        .filter(_._1 == WeatherService.Forecast.Good)
+        .map(_._2)
+    )
+  }
+
+  def getFoodAmount:DBIO[BigDecimal] = {
+    {for{
+      cat <- Cats.query
+      breed <- Breeds.query if cat.breedId === breed.id
+    }yield{
+      breed.caloriesPerDay
+    }}.result.map(_.sum)
+  }
+
   def getBestPossibleSchedule: DBIO[ShoppingScheduleService.Schedule] = {
-    ???
+    val cats = CatFoodShops.query
+      .map(s => s.id)
+      .result
+
+    cats
+      .flatMap(_.toList.traverse(catFoodShopsRepository.getPriceList(_)))
+      .map(cheapestFoodPickerService.pickCheapestFood(_))
+      .flatMap{
+        case(food,shop) =>
+          for{
+            days <- getGoodWeatherDays(shop)
+            a <- getFoodAmount
+          }yield{
+            shoppingScheduleService.getSchedule(shop, food,a*7 / food.caloriesPerGram,days)
+          }
+      }
   }
 
   "getBestPossibleSchedule" should "compose best possible schedule" in rollbackWithTestData {

@@ -2,9 +2,11 @@ package exercises
 
 import cats.implicits._
 import instances.DbioInstances.dbioMonad
-import model.domain.{ Breed, Cat, Meal }
+import model.domain.{Breed, Cat, Meal}
+import model.infra.Breeds
 import slick.dbio.DBIO
 import util.WorkshopTest
+import slick.jdbc.H2Profile.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -31,7 +33,15 @@ class Exercise7Test extends WorkshopTest {
     *
     */
 
-  def prepareGetBreedForCat(cats: List[Cat]): DBIO[Long => Breed] = ???
+  def prepareGetBreedForCat(cats: List[Cat]): DBIO[Long => Breed] = {
+    cats.map(c => (c.id.get, c.breedId)).traverse[DBIO, (Long, Breed)]{
+      case (catId, breedId) => for {
+        breed <- breedsRepository.findExistingById(breedId)
+      } yield {
+        catId -> breed
+      }
+    }.map(_ toMap)
+  }
 
   it should "correctly verify diets for cats" in fixture { c =>
     import c._

@@ -20,21 +20,27 @@ object DbioInstances {
       *
       */
 
-    override def product[A, B](fa: DBIO[A], fb: DBIO[B]): DBIO[(A, B)] = ???
+    override def product[A, B](fa: DBIO[A], fb: DBIO[B]): DBIO[(A, B)] = {
+       fa.zip(fb)
+    }
 
     /**
       * `map` should allow us to have a value in a context (F[A]) and then feed
       * that into a function that takes a normal value and returns a different one.
       *
       */
-    override def map[A, B](fa: DBIO[A])(f: (A) => B): DBIO[B] = ???
+    override def map[A, B](fa: DBIO[A])(f: (A) => B): DBIO[B] = {
+      fa.map(e => f(e))
+    }
 
     /**
       * `pure` should lift any value into the Applicative Functor.
       *
       */
 
-    override def pure[A](x: A): DBIO[A] = ???
+    override def pure[A](x: A): DBIO[A] = {
+      DBIO.successful(x)
+    }
 
     /**
       * `flatMap` should allow us to have a value in a context (F[A]) and then feed
@@ -43,7 +49,9 @@ object DbioInstances {
       *
       */
 
-    override def flatMap[A, B](fa: DBIO[A])(f: (A) => DBIO[B]): DBIO[B] = ???
+    override def flatMap[A, B](fa: DBIO[A])(f: (A) => DBIO[B]): DBIO[B] = {
+      fa.flatMap(f)
+    }
 
     /**
       * Keep calling `f` until a `scala.util.Right[B]` is returned.

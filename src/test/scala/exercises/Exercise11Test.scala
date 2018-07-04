@@ -31,11 +31,38 @@ class Exercise11Test extends WorkshopTest {
     */
 
   def validateSchedule(schedule: ShoppingScheduleService.Schedule): EitherT[DBIO, List[String], Stars] = {
-    ???
+    import shoppingScheduleValidator._
+
+    val l: List[EitherT[DBIO, List[String], Stars]] = List(
+      EitherT.fromEither(checkOverload(schedule)),
+      EitherT.fromEither(checkFrequency(schedule)),
+      EitherT.fromEither(checkShoppingOnSunday(schedule)),
+      EitherT(canBuyFoodAtShop(schedule)),
+      EitherT(isPriceLowEnough(schedule))
+    )
+
+    l.tail.fold(l.head)( _ combine _ )
+
+// val validationFunctions = List(canBuyFoodAtShop(schedule), checkOverload(schedule), checkFrequency(schedule), checkShoppingOnSunday(schedule), isPriceLowEnough(schedule))
+//    val out :List[EitherT[DBIO,List[String],Stars]] = validationFunctions.collect{
+//      case e:DBIO[Either[List[String],Stars]] => EitherT(e)
+//      case e:Either[List[String],Stars] => EitherT.fromEither(e)
+//    }
+
   }
 
   def validateScheduleCollect(schedule: ShoppingScheduleService.Schedule): DBIO[Validated[List[String], Stars]] = {
-    ???
+    import shoppingScheduleValidator._
+
+    for{
+      v1 <- DBIO.successful(Validated.fromEither(checkShoppingOnSunday(schedule)))
+      v2 <- DBIO.successful(Validated.fromEither(checkOverload(schedule)))
+      v3 <- DBIO.successful(Validated.fromEither(checkFrequency(schedule)))
+      v4 <- isPriceLowEnough(schedule).map(Validated.fromEither)
+      v5 <- canBuyFoodAtShop(schedule).map(Validated.fromEither)
+    }yield{
+      v1 combine v2 combine v3 combine v4 combine v5
+    }
   }
 
   "validate schedule" should "recognize valid schedule" in fixture { c =>
